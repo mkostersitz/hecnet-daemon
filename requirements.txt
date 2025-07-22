@@ -1,0 +1,6 @@
+# Process and system utilities monitoring
+psutil>=5.8.0
+
+# Daemon functionality for running as background service
+python-daemon>=2.3.0
+
