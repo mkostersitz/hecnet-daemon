@@ -52,6 +52,7 @@ SENDER_EMAIL = CONFIG.get('hecnet_sender_email', 'your-email@gmail.com')
 SENDER_PASSWORD = CONFIG.get('hecnet_sender_password', 'your-app-password')
 RECEIVER_EMAIL = CONFIG.get('hecnet_receiver_email', 'recipient@example.com')
 TARGET_HOST = CONFIG.get('hecnet_target_host', 'A2RTR')
+SLEEP_TIME = CONFIG.get('hecnet_sleep_time', 120)  # Default to 120 seconds if not set
 
 # Get the directory of the current script and construct paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -72,7 +73,7 @@ LOG_INFO_PATH = os.path.join(LOG_DIR, "decnet-launch-info.log")
 LOG_ERROR_PATH = os.path.join(LOG_DIR, "decnet-status-error.log")
 STATUS_LOG_PATH = os.path.join(LOG_DIR, "decnet-status.log")
 SOCKET_PATH = "/tmp/decnetapi.sock"
-PYDECNET_BIN = "/home/mikek/hecnet/bin/pydecnet"
+PYDECNET_BIN = "/home/yourusername/hecnet/bin/pydecnet"
 HECNET_UPDATE_SCRIPT = os.path.join(CONFIG_DIR, "hecnetupdate.sh")
 
 # Function to log messages to both stdout and a file
@@ -199,8 +200,8 @@ def monitor_process():
             log_message("DECNET process is running.")
         
         check_decnet_link()
-        log_message("Checking again in 60 seconds.")
-        time.sleep(60)
+        log_message(f"Checking again in {SLEEP_TIME} seconds.")
+        time.sleep(SLEEP_TIME)
 
 # Daemon entry point
 def daemon_main():
