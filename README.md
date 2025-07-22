@@ -24,7 +24,7 @@ A Python daemon for monitoring and managing PyDECNET processes and DECNET link s
 ### 1. Clone or Download the Project
 
 ```bash
-cd /home/mikek/  # or your preferred directory
+cd /home/yourusername/  # or your preferred directory
 git clone <repository-url> hecnet-daemon
 cd hecnet-daemon
 ```
