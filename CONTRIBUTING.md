@@ -98,6 +98,7 @@ python test_find_pydecnet.py
 
 ### Configuration
 - Use the `pyvenv.cfg` system for user settings
+- For system variables not containing personally identifiable data (PII) add them to the template, **never upload your own pyenv.cfg**
 - Provide sensible defaults
 - Validate configuration on startup
 - Support cross-platform paths
@@ -105,7 +106,7 @@ python test_find_pydecnet.py
 ## Pull Request Process
 
 ### Before Submitting
-1. **Test thoroughly** on your target platform
+1. **Test thoroughly** on your target platform and if possible on every other platform.
 2. **Update documentation** if you've changed functionality
 3. **Add comments** explaining complex logic
 4. **Check compatibility** with different Python versions
