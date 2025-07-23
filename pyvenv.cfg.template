@@ -1,0 +1,21 @@
+# Python Virtual Environment Configuration Template
+# Copy this file to 'pyvenv.cfg' and configure for your system
+# Run 'python setup.py' to automatically configure all settings
+
+# HECNET Daemon Version
+hecnet_daemon_version = 1.0
+
+# Standard Python Virtual Environment Settings (will be auto-configured)
+home = /usr/bin
+include-system-site-packages = false
+version = 3.11.2
+executable = /usr/bin/python3.11
+command = /path/to/your/python3 -m venv /path/to/your/hecnet
+
+# HECNET Daemon Configuration (configured by setup.py)
+# hecnet_sender_email = your-email@gmail.com
+# hecnet_sender_password = your-app-password
+# hecnet_receiver_email = recipient@example.com
+# hecnet_target_host = MIM
+# hecnet_pydecnet_bin = /path/to/pydecnet
+# hecnet_name_update_interval = 2880

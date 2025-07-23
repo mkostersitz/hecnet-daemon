@@ -341,9 +341,27 @@ def main():
     
     script_dir = get_script_directory()
     pyvenv_path = os.path.join(script_dir, "pyvenv.cfg")
+    template_path = os.path.join(script_dir, "pyvenv.cfg.template")
     
     print(f"Working directory: {script_dir}")
     print(f"Configuration file: {pyvenv_path}")
+    
+    # Create pyvenv.cfg from template if it doesn't exist
+    if not os.path.exists(pyvenv_path):
+        if os.path.exists(template_path):
+            print("\n📋 Creating configuration file from template...")
+            try:
+                import shutil
+                shutil.copy2(template_path, pyvenv_path)
+                print(f"✓ Created {pyvenv_path} from template")
+            except Exception as e:
+                print(f"✗ Failed to copy template: {e}")
+                print("Please manually copy pyvenv.cfg.template to pyvenv.cfg")
+                return
+        else:
+            print(f"\n❌ Neither {pyvenv_path} nor {template_path} exists!")
+            print("Please ensure pyvenv.cfg.template is present in the project directory.")
+            return
     
     # Check if required packages are installed
     if not check_requirements():

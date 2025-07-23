@@ -63,6 +63,7 @@ def validate_configuration():
 CONFIG = read_config_from_pyvenv()
 
 # Global paths and variables
+DAEMON_VERSION = CONFIG.get('hecnet_daemon_version', '1.0')
 SENDER_EMAIL = CONFIG.get('hecnet_sender_email', 'your-email@gmail.com')
 SENDER_PASSWORD = CONFIG.get('hecnet_sender_password', 'your-app-password')
 RECEIVER_EMAIL = CONFIG.get('hecnet_receiver_email', 'recipient@example.com')
@@ -293,8 +294,11 @@ def main():
     parser = argparse.ArgumentParser(description="DECNET Management Script")
     parser.add_argument("--relaunch", action="store_true", help="Restart the PyDECNET process.")
     parser.add_argument("--update-names", action="store_true", help="Update DECNET node names from HECnet.")
+    parser.add_argument("--version", action="store_true", version=DAEMON_VERSION)
     args = parser.parse_args()
-
+    if args.version:
+        print(f"HECNET Daemon Version: {DAEMON_VERSION}")
+        sys.exit(0)
     if args.relaunch:
         restart_pydecnet()
     elif args.update_names:

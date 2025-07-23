@@ -83,13 +83,20 @@ pip list
 
 ### 4. Configuration
 
-The HECNET daemon now automatically detects your home directory and sets up paths accordingly. No manual path configuration is required!
+The HECNET daemon uses a template-based configuration system that keeps your personal settings secure while providing easy setup for new users.
+
+#### Configuration Files
+
+- **`pyvenv.cfg.template`**: Template file (safe to commit to Git)
+- **`pyvenv.cfg`**: Your personal configuration (ignored by Git)
+
+The setup script automatically creates `pyvenv.cfg` from the template if it doesn't exist.
 
 #### Automatic Path Detection
 
 The daemon automatically configures the following paths:
 
-- **PyDECNET Binary**: `~/hecnet/bin/pydecnet` (automatically detected)
+- **PyDECNET Binary**: Automatically discovered using system commands (`which`/`where`)
 - **Configuration Files**: `./config/` directory in the project
 - **Log Files**: `./hecnet/logs/` directory in the project
 - **Node Names**: `~/.local/bin/nodenames.conf` (created by decnet-name-update.py)
