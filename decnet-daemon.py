@@ -5,7 +5,7 @@ import smtplib
 from email.mime.text import MIMEText # Enable Email sending for server down
 from email.mime.multipart import MIMEMultipart # Enable Email sending for server down
 import psutil
-from datetime import datetime
+from datetime import datetime, timedelta
 import argparse
 import daemon
 import subprocess
@@ -51,6 +51,13 @@ def validate_configuration():
         print("\nPlease run the setup script to reconfigure:")
         print("  python setup.py")
         sys.exit(1)
+    
+    # Log configuration info
+    if NAME_UPDATE_INTERVAL > 0:
+        hours = NAME_UPDATE_INTERVAL / 60
+        log_message(f"Automatic name updates enabled: every {hours} hours")
+    else:
+        log_message("Automatic name updates disabled")
 
 # Read configuration from pyvenv.cfg
 CONFIG = read_config_from_pyvenv()
@@ -61,6 +68,7 @@ SENDER_PASSWORD = CONFIG.get('hecnet_sender_password', 'your-app-password')
 RECEIVER_EMAIL = CONFIG.get('hecnet_receiver_email', 'recipient@example.com')
 TARGET_HOST = CONFIG.get('hecnet_target_host', 'MIM')
 SLEEP_TIME = CONFIG.get('hecnet_sleep_time', 120)  # Default to 120 seconds if not set
+NAME_UPDATE_INTERVAL = int(CONFIG.get('hecnet_name_update_interval', 2880))  # Default to 48 hours (2880 minutes)
 
 # Get the directory of the current script and construct paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -84,6 +92,7 @@ SOCKET_PATH = "/tmp/decnetapi.sock"
 USER_HOME = str(Path.home())
 PYDECNET_BIN = CONFIG.get('hecnet_pydecnet_bin', os.path.join(USER_HOME, "hecnet", "bin", "pydecnet"))
 DECNET_NAME_UPDATE_SCRIPT = os.path.join(SCRIPT_DIR, "decnet-name-update.py")
+NAME_UPDATE_TIMESTAMP_FILE = os.path.join(LOG_DIR, "last_name_update.txt")
 
 # Function to log messages to both stdout and a file
 def log_message(message):
@@ -195,8 +204,63 @@ def update_decnet_names():
     try:
         subprocess.run([sys.executable, DECNET_NAME_UPDATE_SCRIPT], check=True)
         log_message("DECNET name update completed successfully.")
+        # Update the timestamp file
+        update_name_update_timestamp()
     except Exception as e:
         log_message(f"Failed to run DECNET name update script: {e}")
+
+def get_last_name_update_time():
+    """Get the timestamp of the last name update."""
+    try:
+        if os.path.exists(NAME_UPDATE_TIMESTAMP_FILE):
+            with open(NAME_UPDATE_TIMESTAMP_FILE, 'r') as f:
+                timestamp_str = f.read().strip()
+                return datetime.fromisoformat(timestamp_str)
+    except Exception as e:
+        log_message(f"Failed to read name update timestamp: {e}")
+    
+    # Return epoch time if no timestamp file exists
+    return datetime.fromtimestamp(0)
+
+def update_name_update_timestamp():
+    """Update the timestamp file with current time."""
+    try:
+        current_time = datetime.now()
+        with open(NAME_UPDATE_TIMESTAMP_FILE, 'w') as f:
+            f.write(current_time.isoformat())
+        log_message(f"Updated name update timestamp: {current_time}")
+    except Exception as e:
+        log_message(f"Failed to update name update timestamp: {e}")
+
+def should_update_names():
+    """Check if it's time to update DECNET names based on the configured interval."""
+    if NAME_UPDATE_INTERVAL <= 0:
+        return False  # Automatic updates disabled
+    
+    last_update = get_last_name_update_time()
+    current_time = datetime.now()
+    time_since_update = current_time - last_update
+    
+    # Convert interval from minutes to seconds for comparison
+    interval_seconds = NAME_UPDATE_INTERVAL * 60
+    
+    return time_since_update.total_seconds() >= interval_seconds
+
+def check_and_update_names_if_needed():
+    """Check if names need updating and update them if necessary."""
+    if should_update_names():
+        last_update = get_last_name_update_time()
+        hours_since_update = (datetime.now() - last_update).total_seconds() / 3600
+        log_message(f"Automatic name update due (last update: {hours_since_update:.1f} hours ago)")
+        update_decnet_names()
+    else:
+        if NAME_UPDATE_INTERVAL > 0:
+            last_update = get_last_name_update_time()
+            next_update_time = last_update + timedelta(minutes=NAME_UPDATE_INTERVAL)
+            time_until_next = next_update_time - datetime.now()
+            hours_until_next = time_until_next.total_seconds() / 3600
+            if hours_until_next > 0:
+                log_message(f"Next automatic name update in {hours_until_next:.1f} hours")
 
 # Function to monitor the DECNET process
 def monitor_process():
@@ -209,6 +273,10 @@ def monitor_process():
             log_message("DECNET process is running.")
         
         check_decnet_link()
+        
+        # Check if automatic name update is needed
+        check_and_update_names_if_needed()
+        
         log_message(f"Checking again in {SLEEP_TIME} seconds.")
         time.sleep(SLEEP_TIME)
 

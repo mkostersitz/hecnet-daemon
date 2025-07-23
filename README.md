@@ -7,6 +7,7 @@ A Python daemon for monitoring and managing PyDECNET processes and DECNET link s
 - **Process Monitoring**: Automatically detects when PyDECNET is not running and restarts it
 - **Link Status Monitoring**: Checks DECNET link to A2RTR node every 60 seconds
 - **Email Notifications**: Sends alerts when the DECNET link goes down or comes back up
+- **Automatic Name Updates**: Downloads updated DECNET node names from HECnet at configurable intervals (default: 48 hours)
 - **Daemon Mode**: Runs as a background service
 - **Logging**: Comprehensive logging to files and stdout
 - **Manual Operations**: Support for manual restart and HECNET name updates
@@ -105,7 +106,19 @@ SENDER_PASSWORD = "your-app-password"  # Gmail app password, not regular passwor
 This will interactively configure:
 - Email settings (sender, receiver, Gmail app password)
 - Target DECNET host to monitor (default: MIM)
+- **Automatic name updates** (default: every 48 hours, configurable)
 - Automatically test email configuration
+
+### Automatic Name Updates
+
+The daemon can automatically update DECNET node names from HECnet at configurable intervals:
+
+- **Default**: Updates every 48 hours (2880 minutes)
+- **Configure**: During setup, specify update interval in hours
+- **Disable**: Set interval to 0 to disable automatic updates
+- **Manual**: Use `python decnet-daemon.py --update-names` anytime
+
+The daemon tracks the last update time and automatically downloads the latest node list when the configured interval has elapsed.
 
 ### 5. PyDECNET Configuration
 
@@ -159,6 +172,7 @@ The daemon will:
 - Check if PyDECNET is running every 60 seconds
 - Restart PyDECNET if it's not running
 - Monitor DECNET link status to A2RTR
+- **Automatically update DECNET node names** at the configured interval (default: 48 hours)
 - Send email notifications on link status changes
 - Log all activities to the status log file
 
@@ -238,6 +252,11 @@ tail -f hecnet/logs/*.log
 # Check status with the status script
 python decnet-status.py
 ```
+
+## Updating the configuration
+
+To update the configuration run `python3 ./setup.py` inside the virtual environment.   
+Once the changes are configured run `python3 ./decnet-daemon.py --relaunch` to refresh the configuration.
 
 ## Troubleshooting
 

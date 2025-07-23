@@ -300,6 +300,40 @@ Setup completed successfully!"""
     
     return True
 
+def prompt_for_name_update_config():
+    """Prompt user for name update interval configuration."""
+    print("\n=== Name Update Configuration ===")
+    print("The daemon can automatically update DECNET node names from HECnet.")
+    print("Default interval: 48 hours (2880 minutes)")
+    
+    while True:
+        try:
+            interval_input = input("Enter update interval in hours (default: 48, 0 to disable): ").strip()
+            
+            if not interval_input:
+                interval_hours = 48  # Default
+            else:
+                interval_hours = float(interval_input)
+            
+            if interval_hours < 0:
+                print("Interval cannot be negative. Please enter 0 to disable or a positive number.")
+                continue
+            elif interval_hours == 0:
+                print("✓ Automatic name updates disabled")
+                return 0
+            elif interval_hours < 1:
+                print("Warning: Update interval less than 1 hour may cause excessive server load.")
+                confirm = input("Continue with this interval? (y/N): ").strip().lower()
+                if confirm != 'y':
+                    continue
+            
+            interval_minutes = int(interval_hours * 60)
+            print(f"✓ Name update interval set to {interval_hours} hours ({interval_minutes} minutes)")
+            return interval_minutes
+            
+        except ValueError:
+            print("Please enter a valid number.")
+
 def main():
     """Main setup function."""
     print("HECNET Daemon Setup Script")
@@ -327,6 +361,14 @@ def main():
         print(f"  DECNET Host: {config.get('hecnet_target_host', 'Not set')}")
         print(f"  PyDECNET Binary: {config.get('hecnet_pydecnet_bin', 'Not set')}")
         
+        # Show name update interval
+        update_interval = config.get('hecnet_name_update_interval', '2880')
+        if update_interval == '0':
+            print(f"  Name Update Interval: Disabled")
+        else:
+            hours = int(update_interval) / 60
+            print(f"  Name Update Interval: {hours} hours ({update_interval} minutes)")
+        
         reconfigure = input("\nReconfigure settings? (y/N): ").strip().lower()
         if reconfigure != 'y':
             print("Setup cancelled. Existing configuration unchanged.")
@@ -341,12 +383,16 @@ def main():
     # Get PyDECNET configuration
     pydecnet_bin = prompt_for_pydecnet_config()
     
+    # Get name update interval configuration
+    name_update_interval = prompt_for_name_update_config()
+    
     # Update configuration
     config['hecnet_sender_email'] = sender_email
     config['hecnet_sender_password'] = sender_password
     config['hecnet_receiver_email'] = receiver_email
     config['hecnet_target_host'] = decnet_host
     config['hecnet_pydecnet_bin'] = pydecnet_bin
+    config['hecnet_name_update_interval'] = str(name_update_interval)
     
     # Test email configuration
     if not test_email_config(sender_email, sender_password, receiver_email):
