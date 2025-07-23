@@ -59,7 +59,7 @@ python decnet-status.py                 # Check status
 
 | Document | Description |
 |----------|-------------|
-| **[📋 INSTALL.md](INSTALL.md)** | **Complete installation guide with platform-specific instructions** |
+| [📋 INSTALL.md](INSTALL.md) | Complete installation guide with platform-specific instructions |
 | [🏗️ doc/OVERVIEW.md](doc/OVERVIEW.md) | Detailed architecture and system overview |
 | [🔄 doc/AUTOMATIC_NAME_UPDATES.md](doc/AUTOMATIC_NAME_UPDATES.md) | Automatic node name update system |
 | [🔍 doc/PYDECNET_DISCOVERY.md](doc/PYDECNET_DISCOVERY.md) | PyDECNET binary auto-discovery system |
