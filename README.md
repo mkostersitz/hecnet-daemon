@@ -15,16 +15,44 @@ A Python daemon for monitoring and managing PyDECNET processes and DECNET link s
 
 - Linux operating system
 - Python 3.6 or higher
-- PyDECNET installed and configured
+- **PyDECNET installed and configured** - See [PyDECNET Installation Guide](https://github.com/pkoning2/pydecnet/blob/main/pydecnet/doc/install.txt)
 - sudo privileges (for process management and socket cleanup)
 - Gmail account with app password for email notifications
+
+## PyDECNET Installation
+
+Before setting up the HECNET daemon, you must have PyDECNET installed and configured on your system. PyDECNET is the core DECNET implementation that this daemon monitors and manages.
+
+### Installation Options
+
+1. **Follow the Official Installation Guide**: [PyDECNET Installation Documentation](https://github.com/pkoning2/pydecnet/blob/main/pydecnet/doc/install.txt)
+
+2. **Quick Installation Summary**:
+   ```bash
+   # Clone PyDECNET repository
+   git clone https://github.com/pkoning2/pydecnet.git
+   
+   # Install PyDECNET (follow the detailed instructions in the link above)
+   cd pydecnet
+   # ... follow installation steps from official documentation
+   ```
+
+3. **Verify Installation**:
+   ```bash
+   # PyDECNET should be accessible via command line
+   which pydecnet
+   # or
+   pydecnet --help
+   ```
+
+**Note**: The HECNET daemon will automatically detect your PyDECNET installation location during setup, whether it's installed system-wide or in a custom location.
 
 ## Setup Instructions
 
 ### 1. Clone or Download the Project
 
 ```bash
-cd /home/yourusername/  # or your preferred directory
+cd ~  # or your preferred directory
 git clone <repository-url> hecnet-daemon
 cd hecnet-daemon
 ```
@@ -54,60 +82,65 @@ pip list
 
 ### 4. Configuration
 
-#### Update Configuration Paths
+The HECNET daemon now automatically detects your home directory and sets up paths accordingly. No manual path configuration is required!
 
-Edit `hecnet-damon.py` and update the following paths to match your system:
+#### Automatic Path Detection
 
-```python
-# Global paths and variables
-PYDECNET_CONFIG_FILES = [
-    "/home/yourusername/decnet/dev-logging.json",    # Update path
-    "/home/yourusername/decnet/theark.conf",         # Update path
-    "/home/yourusername/decnet/http.conf"            # Update path
-]
-LOG_INFO_PATH = "/home/yourusername/decnet/decnet-launch-info.log"
-LOG_ERROR_PATH = "/home/yourusername/decnet/decnet-status-error.log"
-STATUS_LOG_PATH = "/home/yourusername/decnet/decnet-status.log"
-PYDECNET_BIN = "/home/yourusername/hecnet/bin/pydecnet"
-HECNET_UPDATE_SCRIPT = "/home/yourusername/decnet/hecnetupdate.sh"
-```
+The daemon automatically configures the following paths:
 
-#### Configure Email Settings
+- **PyDECNET Binary**: `~/hecnet/bin/pydecnet` (automatically detected)
+- **Configuration Files**: `./config/` directory in the project
+- **Log Files**: `./hecnet/logs/` directory in the project
+- **Node Names**: `~/.local/bin/nodenames.conf` (created by decnet-name-update.py)
 
-Update the email configuration in `hecnet-damon.py`:
+#### Configure Settings with Setup Script
 
-```python
-SENDER_EMAIL = "your-email@gmail.com"
-SENDER_PASSWORD = "your-app-password"  # Gmail app password, not regular password
-RECEIVER_EMAIL = "recipient@example.com"
-```
-
-**Note**: For Gmail, you need to:
-1. Enable 2-factor authentication
-2. Generate an app password (not your regular password)
-3. Use the app password in the script
-
-### 5. Create Required Directories
+Run the setup script to configure email settings and target host:
 
 ```bash
-# Create log directory if it doesn't exist
-mkdir -p /home/yourusername/decnet
+python setup.py
+SENDER_PASSWORD = "your-app-password"  # Gmail app password, not regular password
+```
 
-# Ensure the HECNET update script is executable
-chmod +x /home/yourusername/decnet/hecnetupdate.sh
+This will interactively configure:
+- Email settings (sender, receiver, Gmail app password)
+- Target DECNET host to monitor (default: MIM)
+- Automatically test email configuration
+
+### 5. PyDECNET Configuration
+
+The HECNET daemon will automatically discover your PyDECNET installation during the setup process. The setup script searches for PyDECNET in:
+
+- System PATH (using `which pydecnet` or `where pydecnet`)
+- Common installation locations:
+  - `~/hecnet/bin/pydecnet`
+  - `~/bin/pydecnet`
+  - `/usr/local/bin/pydecnet`
+  - `/usr/bin/pydecnet`
+
+If PyDECNET is not found automatically, you'll be prompted to enter the path manually during setup.
+
+```bash
+# Verify PyDECNET is accessible
+which pydecnet
+# or test the discovery system
+python test_find_pydecnet.py
 ```
 
 ### 6. Test the Setup
 
 ```bash
 # Activate virtual environment if not already active
-source venv/bin/activate
+source hecnet/bin/activate
 
 # Test manual restart
-python hecnet-damon.py --relaunch
+python decnet-daemon.py --relaunch
 
-# Test HECNET update
-python hecnet-damon.py --update-names
+# Test DECNET name update
+python decnet-daemon.py --update-names
+
+# Check system status
+python decnet-status.py
 ```
 
 ## Usage
@@ -119,7 +152,7 @@ python hecnet-damon.py --update-names
 source venv/bin/activate
 
 # Start the daemon
-python hecnet-damon.py
+python decnet-daemon.py
 ```
 
 The daemon will:
@@ -133,10 +166,13 @@ The daemon will:
 
 ```bash
 # Restart PyDECNET manually
-python hecnet-damon.py --relaunch
+python decnet-daemon.py --relaunch
 
-# Update HECNET names
-python hecnet-damon.py --update-names
+# Update DECNET names
+python decnet-daemon.py --update-names
+
+# Check system status
+python decnet-status.py
 ```
 
 ### Running at System Startup
@@ -157,17 +193,19 @@ After=network.target
 
 [Service]
 Type=forking
-User=yourusername
-Group=yourusername
-WorkingDirectory=/home/yourusername/hecnet-daemon
-Environment=PATH=/home/yourusername/hecnet-daemon/venv/bin
-ExecStart=/home/yourusername/hecnet-daemon/venv/bin/python /home/yourusername/hecnet-daemon/hecnet-damon.py
+User=$USER
+Group=$USER
+WorkingDirectory=%h/hecnet-daemon
+Environment=PATH=%h/hecnet-daemon/hecnet/bin
+ExecStart=%h/hecnet-daemon/hecnet/bin/python %h/hecnet-daemon/decnet-daemon.py
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+**Note**: The `%h` variable automatically expands to the user's home directory, making the service portable across different users.
 
 Enable and start the service:
 
@@ -182,20 +220,23 @@ sudo systemctl status hecnet-daemon
 
 ## Log Files
 
-The daemon creates several log files:
+The daemon creates several log files in the project directory:
 
-- **Status Log**: `/home/yourusername/decnet/decnet-status.log` - Main daemon activity log
-- **Info Log**: `/home/yourusername/decnet/decnet-launch-info.log` - PyDECNET stdout
-- **Error Log**: `/home/yourusername/decnet/decnet-status-error.log` - PyDECNET stderr
+- **Status Log**: `./hecnet/logs/decnet-status.log` - Main daemon activity log
+- **Info Log**: `./hecnet/logs/decnet-launch-info.log` - PyDECNET stdout
+- **Error Log**: `./hecnet/logs/decnet-status-error.log` - PyDECNET stderr
 
 Monitor logs in real-time:
 
 ```bash
 # Watch main status log
-tail -f /home/yourusername/decnet/decnet-status.log
+tail -f hecnet/logs/decnet-status.log
 
 # Watch all logs
-tail -f /home/yourusername/decnet/*.log
+tail -f hecnet/logs/*.log
+
+# Check status with the status script
+python decnet-status.py
 ```
 
 ## Troubleshooting
@@ -204,9 +245,9 @@ tail -f /home/yourusername/decnet/*.log
 
 ```bash
 # If virtual environment is corrupted, recreate it
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
+rm -rf hecnet
+python3 -m venv hecnet
+source hecnet/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -214,19 +255,20 @@ pip install -r requirements.txt
 
 ```bash
 # Ensure proper permissions for socket cleanup
-sudo chown yourusername:yourusername /tmp/decnetapi.sock
+sudo chown $USER:$USER /tmp/decnetapi.sock
 ```
 
 ### Email Not Working
 
-1. Verify Gmail app password is correct
-2. Check that 2-factor authentication is enabled
-3. Test email settings with a simple script
+1. Run `python setup.py` to reconfigure email settings
+2. Test with the built-in email test feature
+3. Verify Gmail app password is correct
+4. Check that 2-factor authentication is enabled
 
 ### PyDECNET Not Starting
 
-1. Check PyDECNET binary path
-2. Verify configuration file paths
+1. Verify PyDECNET is installed at `~/hecnet/bin/pydecnet`
+2. Check that configuration files are in the `config/` directory
 3. Check log files for error details
 4. Ensure PyDECNET dependencies are installed
 

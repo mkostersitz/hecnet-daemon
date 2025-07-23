@@ -160,6 +160,101 @@ def prompt_for_decnet_config():
     
     return decnet_host
 
+def find_pydecnet_binary():
+    """Try to find the PyDECNET binary automatically using system commands."""
+    import platform
+    
+    # First try using system commands to find pydecnet in PATH
+    system = platform.system().lower()
+    
+    try:
+        if system == "windows":
+            # Try 'where' command first on Windows
+            try:
+                result = subprocess.run(['where', 'pydecnet'], 
+                                      capture_output=True, text=True, check=True)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                # Fall back to PowerShell Get-Command
+                result = subprocess.run(['powershell', '-Command', 'Get-Command pydecnet | Select-Object -ExpandProperty Source'], 
+                                      capture_output=True, text=True, check=True)
+        else:
+            # Use 'which' command on Linux/macOS (more reliable than 'whereis')
+            result = subprocess.run(['which', 'pydecnet'], 
+                                  capture_output=True, text=True, check=True)
+        
+        # Return the first path found (strip whitespace)
+        path = result.stdout.strip().split('\n')[0]
+        if path and os.path.exists(path) and os.access(path, os.X_OK):
+            return path
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Command failed or not found, fall back to manual search
+        pass
+    
+    # Fall back to checking common installation paths
+    possible_paths = [
+        os.path.expanduser("~/hecnet/bin/pydecnet"),
+        os.path.expanduser("~/bin/pydecnet"),
+        "/usr/local/bin/pydecnet",
+        "/usr/bin/pydecnet",
+        os.path.expanduser("~/pydecnet/pydecnet"),
+        os.path.expanduser("~/DECnet/bin/pydecnet"),
+        os.path.expanduser("~/decnet/bin/pydecnet")
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path) and os.access(path, os.X_OK):
+            return path
+    
+    return None
+
+def prompt_for_pydecnet_config():
+    """Prompt user for PyDECNET binary configuration."""
+    print("\n=== PyDECNET Configuration ===")
+    print("Locating PyDECNET binary...")
+    
+    # Try to find PyDECNET automatically
+    found_path = find_pydecnet_binary()
+    
+    if found_path:
+        print(f"Found PyDECNET at: {found_path}")
+        use_found = input("Use this path? (Y/n): ").strip().lower()
+        if use_found != 'n':
+            return found_path
+    
+    # Ask user to provide path
+    print("\nPyDECNET binary not found automatically.")
+    print("Searched using system commands (where/which/Get-Command) and common paths.")
+    print("Please enter the full path to your PyDECNET binary.")
+    print("Common locations:")
+    print("  ~/hecnet/bin/pydecnet")
+    print("  ~/bin/pydecnet")
+    print("  /usr/local/bin/pydecnet")
+    
+    while True:
+        pydecnet_path = input("\nEnter path to PyDECNET binary: ").strip()
+        if not pydecnet_path:
+            print("Path cannot be empty.")
+            continue
+        
+        # Expand user path
+        pydecnet_path = os.path.expanduser(pydecnet_path)
+        
+        if os.path.exists(pydecnet_path):
+            if os.access(pydecnet_path, os.X_OK):
+                return pydecnet_path
+            else:
+                print(f"File exists but is not executable: {pydecnet_path}")
+                make_exec = input("Make it executable? (y/N): ").strip().lower()
+                if make_exec == 'y':
+                    try:
+                        os.chmod(pydecnet_path, 0o755)
+                        return pydecnet_path
+                    except Exception as e:
+                        print(f"Failed to make executable: {e}")
+        else:
+            print(f"File not found: {pydecnet_path}")
+            print("Please check the path and try again.")
+
 def test_email_config(sender_email, sender_password, receiver_email):
     """Test email configuration by sending a test email."""
     print("\n=== Testing Email Configuration ===")
@@ -230,6 +325,7 @@ def main():
         print(f"  Sender Email: {config.get('hecnet_sender_email', 'Not set')}")
         print(f"  Receiver Email: {config.get('hecnet_receiver_email', 'Not set')}")
         print(f"  DECNET Host: {config.get('hecnet_target_host', 'Not set')}")
+        print(f"  PyDECNET Binary: {config.get('hecnet_pydecnet_bin', 'Not set')}")
         
         reconfigure = input("\nReconfigure settings? (y/N): ").strip().lower()
         if reconfigure != 'y':
@@ -242,11 +338,15 @@ def main():
     # Get DECNET configuration
     decnet_host = prompt_for_decnet_config()
     
+    # Get PyDECNET configuration
+    pydecnet_bin = prompt_for_pydecnet_config()
+    
     # Update configuration
     config['hecnet_sender_email'] = sender_email
     config['hecnet_sender_password'] = sender_password
     config['hecnet_receiver_email'] = receiver_email
     config['hecnet_target_host'] = decnet_host
+    config['hecnet_pydecnet_bin'] = pydecnet_bin
     
     # Test email configuration
     if not test_email_config(sender_email, sender_password, receiver_email):
@@ -265,7 +365,7 @@ def main():
         print("Configuration saved successfully!")
         print("\nNext steps:")
         print("1. Ensure your PyDECNET configuration files are in the 'config/' directory")
-        print("2. Make sure the hecnetupdate.sh script is executable: chmod +x config/hecnetupdate.sh")
+        print("2. Update DECNET node names: python decnet-name-update.py")
         print("3. Test the daemon with: python decnet-daemon.py --relaunch")
         print("4. Start monitoring: python decnet-daemon.py")
         

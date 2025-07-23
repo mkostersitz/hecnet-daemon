@@ -9,6 +9,7 @@ from datetime import datetime
 import argparse
 import daemon
 import subprocess
+from pathlib import Path
 
 def read_config_from_pyvenv():
     """Read configuration from pyvenv.cfg file."""
@@ -28,7 +29,7 @@ def read_config_from_pyvenv():
 
 def validate_configuration():
     """Validate that required configuration is present."""
-    required_keys = ['hecnet_sender_email', 'hecnet_sender_password', 'hecnet_receiver_email', 'hecnet_target_host']
+    required_keys = ['hecnet_sender_email', 'hecnet_sender_password', 'hecnet_receiver_email', 'hecnet_target_host', 'hecnet_pydecnet_bin']
     missing_keys = []
     
     for key in required_keys:
@@ -43,6 +44,13 @@ def validate_configuration():
         print("\nPlease run the setup script first:")
         print("  python setup.py")
         sys.exit(1)
+    
+    # Check if PyDECNET binary exists
+    if not os.path.exists(PYDECNET_BIN):
+        print(f"ERROR: PyDECNET binary not found at: {PYDECNET_BIN}")
+        print("\nPlease run the setup script to reconfigure:")
+        print("  python setup.py")
+        sys.exit(1)
 
 # Read configuration from pyvenv.cfg
 CONFIG = read_config_from_pyvenv()
@@ -51,7 +59,7 @@ CONFIG = read_config_from_pyvenv()
 SENDER_EMAIL = CONFIG.get('hecnet_sender_email', 'your-email@gmail.com')
 SENDER_PASSWORD = CONFIG.get('hecnet_sender_password', 'your-app-password')
 RECEIVER_EMAIL = CONFIG.get('hecnet_receiver_email', 'recipient@example.com')
-TARGET_HOST = CONFIG.get('hecnet_target_host', 'A2RTR')
+TARGET_HOST = CONFIG.get('hecnet_target_host', 'MIM')
 SLEEP_TIME = CONFIG.get('hecnet_sleep_time', 120)  # Default to 120 seconds if not set
 
 # Get the directory of the current script and construct paths
@@ -73,8 +81,9 @@ LOG_INFO_PATH = os.path.join(LOG_DIR, "decnet-launch-info.log")
 LOG_ERROR_PATH = os.path.join(LOG_DIR, "decnet-status-error.log")
 STATUS_LOG_PATH = os.path.join(LOG_DIR, "decnet-status.log")
 SOCKET_PATH = "/tmp/decnetapi.sock"
-PYDECNET_BIN = "/home/yourusername/hecnet/bin/pydecnet"
-HECNET_UPDATE_SCRIPT = os.path.join(CONFIG_DIR, "hecnetupdate.sh")
+USER_HOME = str(Path.home())
+PYDECNET_BIN = CONFIG.get('hecnet_pydecnet_bin', os.path.join(USER_HOME, "hecnet", "bin", "pydecnet"))
+DECNET_NAME_UPDATE_SCRIPT = os.path.join(SCRIPT_DIR, "decnet-name-update.py")
 
 # Function to log messages to both stdout and a file
 def log_message(message):
@@ -180,14 +189,14 @@ def restart_pydecnet():
     remove_locked_socket()
     start_pydecnet()
 
-# Function to update HECNET names
-def update_hecnet_names():
-    log_message("Running HECNET update script.")
+# Function to update DECNET names
+def update_decnet_names():
+    log_message("Running DECNET name update script.")
     try:
-        subprocess.run(["bash", HECNET_UPDATE_SCRIPT], check=True)
-        log_message("HECNET update completed successfully.")
+        subprocess.run([sys.executable, DECNET_NAME_UPDATE_SCRIPT], check=True)
+        log_message("DECNET name update completed successfully.")
     except Exception as e:
-        log_message(f"Failed to run HECNET update script: {e}")
+        log_message(f"Failed to run DECNET name update script: {e}")
 
 # Function to monitor the DECNET process
 def monitor_process():
@@ -215,13 +224,13 @@ def main():
     
     parser = argparse.ArgumentParser(description="DECNET Management Script")
     parser.add_argument("--relaunch", action="store_true", help="Restart the PyDECNET process.")
-    parser.add_argument("--update-names", action="store_true", help="Run the HECNET update script.")
+    parser.add_argument("--update-names", action="store_true", help="Update DECNET node names from HECnet.")
     args = parser.parse_args()
 
     if args.relaunch:
         restart_pydecnet()
     elif args.update_names:
-        update_hecnet_names()
+        update_decnet_names()
     else:
         # Start the daemon
         with daemon.DaemonContext():
